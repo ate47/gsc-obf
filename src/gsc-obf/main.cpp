@@ -51,6 +51,10 @@ namespace {
         return crc.final();
     }
 
+    const char* ExtractTmp(uint32_t hash) {
+        return utils::va("hash_%x", hash); // todo: use db
+    }
+
     int HandleFile(std::filesystem::path in, std::filesystem::path out) {
         std::vector<byte> buffer;
 
@@ -111,16 +115,19 @@ namespace {
 
         data::gsc::T7GSCExport* exports{ (data::gsc::T7GSCExport*)&header.magic[header.export_offset] };
 
-        std::unordered_map<NameLocated, data::gsc::T7GSCExport*, NameLocatedHash, NameLocatedEquals> exportsMap{};
-        std::unordered_map<NameLocated, data::gsc::T7GSCImport*, NameLocatedHash, NameLocatedEquals> importsMap{};
+        std::unordered_map<NameLocated, std::vector<data::gsc::T7GSCExport*>, NameLocatedHash, NameLocatedEquals>
+            exportsMap{};
+        std::unordered_map<NameLocated, std::vector<data::gsc::T7GSCImport*>, NameLocatedHash, NameLocatedEquals>
+            importsMap{};
 
         for (size_t i = 0; i < header.export_count; i++) {
             data::gsc::T7GSCExport& exp{ exports[i] };
 
             exportsMap[NameLocated{
-                .name_space = exp.name_space,
-                .name = exp.name,
-            }] = &exp;
+                           .name_space = exp.name_space,
+                           .name = exp.name,
+                       }]
+                .emplace_back(&exp);
 
             if (utils::AlignedC<uint16_t>(exp.address) + 4 > scriptLen) { // the minimum is createparam + end (4 bytes)
                 LOG_ERROR("Found invalid exports address @{}", i);
@@ -179,15 +186,40 @@ namespace {
             }
 
             importsMap[NameLocated{
-                .name_space = imp.import_namespace,
-                .name = imp.name,
-            }] = &imp;
+                           .name_space = imp.import_namespace,
+                           .name = imp.name,
+                       }]
+                .emplace_back(&imp);
 
             if (!opt.noDebugKill) {
                 if ((imp.flags & data::gsc::T7GIF_DEV_CALL) != 0) {
                     // kill dev block call information
                     imp.name = 0;
                     imp.import_namespace = 0;
+                }
+            }
+        }
+
+        uint32_t privateCount{};
+        for (auto& [nl, exps] : exportsMap) {
+            if (exps.size() != 1) {
+                LOG_WARNING("export {}::{} defined multiple times", ExtractTmp(nl.name_space), ExtractTmp(nl.name));
+                continue;
+            }
+
+            data::gsc::T7GSCExport& exp{ *exps[0] };
+            if ((exp.flags & data::gsc::T7GEF_PRIVATE) != 0) {
+                // private export, we can remove its name
+
+                exp.name = ++privateCount;
+
+                auto iit{ importsMap.find(nl) };
+                if (iit == importsMap.end()) {
+                    continue;
+                }
+
+                for (data::gsc::T7GSCImport* imp : iit->second) {
+                    imp->name = exp.name;
                 }
             }
         }

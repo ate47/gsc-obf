@@ -60,6 +60,13 @@ namespace data::gsc {
         uint16_t pad;
     };
 
+    enum T7GSCExportFlags {
+        T7GEF_LINKED = 1,
+        T7GEF_AUTOEXEC = 2,
+        T7GEF_PRIVATE = 4,
+        T7GEF_VE = 0x20,
+    };
+
     enum T7GSCImportFlags {
         T7GIF_FUNC_METHOD = 1,
         T7GIF_FUNCTION = 2,

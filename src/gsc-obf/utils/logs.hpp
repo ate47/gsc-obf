@@ -100,9 +100,9 @@ namespace utils::logs {
 #define LOG_GET_LOG_LINE 0
 #else
 #define LOG_GET_LOG_REF_STR_DATA                                                                                       \
-    (utils::logs::GetLogFile<                                                                                           \
-        utils::logs::GetLogFileLen(__FILE__),                                                                           \
-        utils::logs::GetLogFileSplit(__FILE__),                                                                         \
+    (utils::logs::GetLogFile<                                                                                          \
+        utils::logs::GetLogFileLen(__FILE__),                                                                          \
+        utils::logs::GetLogFileSplit(__FILE__),                                                                        \
         utils::logs::GetLogFileExt(__FILE__)>(__FILE__))
 #define LOG_GET_LOG_REF_STR (LOG_GET_LOG_REF_STR_DATA.data())
 #define LOG_GET_LOG_LINE __LINE__
@@ -112,7 +112,7 @@ namespace utils::logs {
     do {                                                                                                               \
         if (HAS_LOG_LEVEL(LEVEL)) {                                                                                    \
             constexpr auto ___ff = LOG_GET_LOG_REF_STR_DATA;                                                           \
-            utils::logs::log(LEVEL, ___ff.data(), LOG_GET_LOG_LINE, msg);                                               \
+            utils::logs::log(LEVEL, ___ff.data(), LOG_GET_LOG_LINE, msg);                                              \
         }                                                                                                              \
     } while (0)
 #define LOG_LVLF(LEVEL, ...) LOG_LVL(LEVEL, std::format(__VA_ARGS__))

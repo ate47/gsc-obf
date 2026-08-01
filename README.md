@@ -7,3 +7,4 @@ Current features:
 - Remove export checksums
 - Remove variable names
 - Remove dev call function names
+- Remove private function names
