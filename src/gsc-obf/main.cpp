@@ -10,9 +10,26 @@ namespace {
     struct GscObfOptions {
         bool printHelp{};
         bool printData{};
+        bool noDebugKill{};
         const char* logLevel{};
         const char* output{ "output" };
     } opt;
+
+    struct NameLocated {
+        uint64_t name_space;
+        uint64_t name;
+        uint64_t script{};
+    };
+    struct NameLocatedHash {
+        size_t operator()(const NameLocated& k) const {
+            return k.name_space ^ std::rotl(k.name, 21) ^ std::rotl(k.script, 42);
+        }
+    };
+    struct NameLocatedEquals {
+        bool operator()(const NameLocated& a, const NameLocated& b) const {
+            return a.name == b.name && a.name_space == b.name_space && a.script == b.script;
+        }
+    };
 
     uint16_t SafeCreateLocalVariables_Opcodes[]{
         0x1d2,  0x299,  0x2f7,  0x336,  0x3fa,  0x45a,  0x49f,  0x5b3,  0x6a7,  0x7b1,  0x80c,  0x83e,  0x958,  0xa9a,
@@ -94,8 +111,17 @@ namespace {
 
         data::gsc::T7GSCExport* exports{ (data::gsc::T7GSCExport*)&header.magic[header.export_offset] };
 
+        std::unordered_map<NameLocated, data::gsc::T7GSCExport*, NameLocatedHash, NameLocatedEquals> exportsMap{};
+        std::unordered_map<NameLocated, data::gsc::T7GSCImport*, NameLocatedHash, NameLocatedEquals> importsMap{};
+
         for (size_t i = 0; i < header.export_count; i++) {
             data::gsc::T7GSCExport& exp{ exports[i] };
+
+            exportsMap[NameLocated{
+                .name_space = exp.name_space,
+                .name = exp.name,
+            }] = &exp;
+
             if (utils::AlignedC<uint16_t>(exp.address) + 4 > scriptLen) { // the minimum is createparam + end (4 bytes)
                 LOG_ERROR("Found invalid exports address @{}", i);
                 return -1;
@@ -128,7 +154,7 @@ namespace {
                         byte flags{ *bc };
                         bc += 4; // 3 padding bytes
 
-                        if ((flags & 2) == 0) {     // !varargs
+                        if ((flags & 2) == 0) {          // !varargs
                             *(uint32_t*)varName = 1 + j; // var_1, var_2, etc.
                         }
                     }
@@ -136,6 +162,35 @@ namespace {
             }
         }
         LOG_TRACE("Patched {} exports", header.export_count);
+
+        if (header.import_offset + sizeof(data::gsc::T7GSCImport) > scriptLen) {
+            LOG_ERROR("Invalid imports size");
+            return -1;
+        }
+
+        data::gsc::T7GSCImport* imports{ (data::gsc::T7GSCImport*)&header.magic[header.import_offset] };
+
+        for (size_t i = 0; i < header.import_count; i++) {
+            data::gsc::T7GSCImport& imp{ *imports };
+            imports = (data::gsc::T7GSCImport*)((uint32_t*)&imports[1] + imports->num_address);
+            if (imports > scriptEnd) {
+                LOG_ERROR("Found invalid imports @{}", i);
+                return -1;
+            }
+
+            importsMap[NameLocated{
+                .name_space = imp.import_namespace,
+                .name = imp.name,
+            }] = &imp;
+
+            if (!opt.noDebugKill) {
+                if ((imp.flags & data::gsc::T7GIF_DEV_CALL) != 0) {
+                    // kill dev block call information
+                    imp.name = 0;
+                    imp.import_namespace = 0;
+                }
+            }
+        }
 
         // write back the file
 
@@ -156,6 +211,8 @@ int main(int argc, const char* argv[]) {
 
     opts.addOption(&opt.printHelp, "show help", "--help", "", "-h");
     opts.addOption(&opt.printData, "print script header", "--header", "", "-H");
+    opts.addOption(&opt.noDebugKill, "no debug data kill", "--no-debug", "", "-d");
+    opts.addOption(&opt.logLevel, "log level (e,w,i,d,p)", "--logs", " (level)", "-l");
     opts.addOption(&opt.logLevel, "log level (e,w,i,d,p)", "--logs", " (level)", "-l");
     opts.addOption(&opt.output, "output dir (default: output)", "--output", " (path)", "-o");
 

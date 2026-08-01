@@ -59,4 +59,15 @@ namespace data::gsc {
         uint8_t type;
         uint16_t pad;
     };
+
+    enum T7GSCImportFlags {
+        T7GIF_FUNC_METHOD = 1,
+        T7GIF_FUNCTION = 2,
+        T7GIF_FUNCTION_THREAD = 3,
+        T7GIF_METHOD = 4,
+        T7GIF_METHOD_THREAD = 5,
+        T7GIF_DEV_CALL = 0x10,
+        T7GIF_GET_CALL = 0x20,
+    };
+
 } // namespace data::gsc
