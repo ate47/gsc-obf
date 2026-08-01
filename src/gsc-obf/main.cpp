@@ -194,8 +194,8 @@ namespace {
             if (!opt.noDebugKill) {
                 if ((imp.flags & data::gsc::T7GIF_DEV_CALL) != 0) {
                     // kill dev block call information
-                    imp.name = 0;
-                    imp.import_namespace = 0;
+                    imp.name = 0xdead;
+                    imp.import_namespace = 0xdead;
                 }
             }
         }
