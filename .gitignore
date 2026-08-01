@@ -36,3 +36,9 @@
 /.vs/
 /.vscode/
 /build/
+
+*.gscc
+*.cscc
+*.gsccasm
+*.csccasm
+/output/

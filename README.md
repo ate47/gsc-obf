@@ -1,1 +1,8 @@
-# gsc-obf
+# GSC Obfuscate
+
+Test project to obfuscate GSC files for Call of Duty: Black Ops III.
+
+Current features:
+
+- Remove export checksums
+- Remove variable names

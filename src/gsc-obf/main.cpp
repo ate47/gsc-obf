@@ -2,6 +2,9 @@
 #include <data/gsc_data_t7.hpp>
 #include <utils/cli_options.hpp>
 #include <utils/utils.hpp>
+// crc_cpp stuff
+#undef small
+#include <crc_cpp.h>
 
 namespace {
     struct GscObfOptions {
@@ -10,6 +13,26 @@ namespace {
         const char* logLevel{};
         const char* output{ "output" };
     } opt;
+
+    uint16_t SafeCreateLocalVariables_Opcodes[]{
+        0x1d2,  0x299,  0x2f7,  0x336,  0x3fa,  0x45a,  0x49f,  0x5b3,  0x6a7,  0x7b1,  0x80c,  0x83e,  0x958,  0xa9a,
+        0xaa1,  0xb17,  0xc67,  0xcd7,  0xcef,  0xe21,  0x1210, 0x1224, 0x1260, 0x12e2, 0x1386, 0x13c3, 0x13ed, 0x15a1,
+        0x1654, 0x1897, 0x18a4, 0x195f, 0x1995, 0x1b60, 0x1b6b, 0x1c6d, 0x1e3d, 0x1f65, 0x1f6a, 0x1fa9, 0x209e, 0x213b,
+        0x221b, 0x23d6, 0x252d, 0x2634, 0x26eb, 0x272d, 0x27c6, 0x280c, 0x2836, 0x2898, 0x29db, 0x2a67, 0x2b13, 0x2b42,
+        0x2c8f, 0x2d02, 0x2d24, 0x2dc0, 0x2de0, 0x2e88, 0x2ebb, 0x2ecf, 0x3029, 0x3196, 0x3227, 0x3243, 0x327c, 0x3308,
+        0x339a, 0x33e5, 0x366f, 0x368c, 0x3742, 0x3886, 0x38ab, 0x399f, 0x39c4, 0x3af6, 0x3bb4, 0x3e7e, 0x3ebc
+    };
+
+    uint32_t ComputeCRC32(void* data, size_t len) {
+        byte* b{ (byte*)data };
+
+        crc_cpp::crc32 crc{};
+
+        for (size_t i = 0; i < len; i++) {
+            crc.update(b[i]);
+        }
+        return crc.final();
+    }
 
     int HandleFile(std::filesystem::path in, std::filesystem::path out) {
         std::vector<byte> buffer;
@@ -23,6 +46,8 @@ namespace {
             LOG_ERROR("Can't read {}", in.string());
             return -1;
         }
+
+        void* scriptEnd{ (byte*)script + scriptLen };
 
         if (scriptLen < sizeof(data::gsc::T7GSCOBJ)) {
             LOG_ERROR("Can't read {}: Invalid size", in.string());
@@ -67,7 +92,58 @@ namespace {
             return -1;
         }
 
-        // 
+        data::gsc::T7GSCExport* exports{ (data::gsc::T7GSCExport*)&header.magic[header.export_offset] };
+
+        for (size_t i = 0; i < header.export_count; i++) {
+            data::gsc::T7GSCExport& exp{ exports[i] };
+            if (utils::AlignedC<uint16_t>(exp.address) + 4 > scriptLen) { // the minimum is createparam + end (4 bytes)
+                LOG_ERROR("Found invalid exports address @{}", i);
+                return -1;
+            }
+            byte* bc{ &header.magic[exp.address] };
+
+            // we can remove the checksum by computing only one byte, it kills cerberus
+            exp.checksum = ComputeCRC32(bc, 1);
+
+            bc = utils::Aligned<uint16_t>(bc);
+            uint16_t createParams{ *(uint16_t*)bc };
+            if (std::find(
+                    std::begin(SafeCreateLocalVariables_Opcodes),
+                    std::end(SafeCreateLocalVariables_Opcodes),
+                    createParams
+                ) != std::end(SafeCreateLocalVariables_Opcodes)) {
+                // we have variables, we can remove their names
+                byte count{ bc[2] };
+
+                if (count) {
+                    bc = utils::Aligned<uint32_t>(bc + 3);
+                    if (bc + count * sizeof(uint32_t) * 2 > scriptEnd) {
+                        LOG_ERROR("Found invalid exports bytecode @{}", i);
+                        return -1;
+                    }
+
+                    for (size_t j = 0; j < count; j++) {
+                        uint32_t* varName{ (uint32_t*)bc };
+                        bc += 4;
+                        byte flags{ *bc };
+                        bc += 4; // 3 padding bytes
+
+                        if ((flags & 2) == 0) {     // !varargs
+                            *(uint32_t*)varName = 1 + j; // var_1, var_2, etc.
+                        }
+                    }
+                }
+            }
+        }
+        LOG_TRACE("Patched {} exports", header.export_count);
+
+        // write back the file
+
+        if (!utils::WriteFile(out, script, scriptLen)) {
+            LOG_ERROR("Can't write {}", out.string());
+            return -1;
+        }
+        LOG_DEBUG("Write back {}", out.string());
 
         return 0;
     }
