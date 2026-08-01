@@ -1,0 +1,132 @@
+#pragma once
+#include <includes.hpp>
+
+namespace utils::logs {
+
+    enum loglevel {
+        LVL_TRACE_PATH = -1,
+        LVL_TRACE = 0,
+        LVL_DEBUG = 1,
+        LVL_INFO = 2,
+        LVL_WARNING = 3,
+        LVL_ERROR = 4,
+    };
+
+    typedef void (*logcallback)(
+        loglevel level, const char* header, const char* file, size_t line, const char* str, bool endl
+    );
+
+    constexpr size_t GetLogFileSplit(const char* line) {
+        std::string_view sw{ line };
+
+        size_t idx{ sw.rfind("/src/") };
+        if (idx == std::string::npos) {
+            idx = sw.rfind("\\src\\");
+
+            if (idx == std::string::npos) {
+                return 0;
+            }
+        }
+
+        return idx + 5;
+    }
+
+    constexpr size_t GetLogFileLen(const char* line) {
+        size_t l{ 0 };
+        while (*line++)
+            l++;
+        return l;
+    }
+
+    constexpr size_t GetLogFileExt(const char* line) {
+        std::string_view sw{ line };
+
+        size_t s = sw.rfind('.');
+
+        if (s == std::string::npos || s < GetLogFileSplit(line)) {
+            return 0;
+        }
+
+        return sw.length() - s;
+    }
+
+    template<size_t len, size_t split, size_t ext>
+    constexpr std::array<char, len - split + 1 - ext> GetLogFile(const char* line) {
+        std::array<char, len - split + 1 - ext> a{};
+
+        for (size_t i = split; i < len - ext; i++) {
+            char c;
+            if (line[i] == '\\' || line[i] == '/') {
+                c = ':';
+            } else {
+                c = line[i];
+            }
+            a[i - split] = c;
+        }
+
+        return a;
+    }
+
+    const char* name(loglevel lvl);
+    void setlevel(loglevel lvl);
+    loglevel getlevel();
+    void setbasiclog(bool basiclog);
+    void addlogpath(const std::string& path);
+    void cleanuplogpaths();
+
+    void setfile(const char* filename);
+    const char* logfile();
+
+    void addoutstream(std::ostream* outStream);
+    void addoutcallback(logcallback callback);
+    void disablestdout(bool disabled);
+    void setstrstreams(std::ostream* cout, std::ostream* cerr);
+
+    void log(loglevel level, const char* header, const char* file, size_t line, const char* str, bool endl = true);
+    void log(loglevel level, const char* file, size_t line, const char* str, bool endl = true);
+    inline void
+    log(loglevel level, const char* header, const char* file, size_t line, const std::string& str, bool endl = true) {
+        log(level, header, file, line, str.c_str(), endl);
+    }
+    inline void log(loglevel level, const char* file, size_t line, const std::string& str, bool endl = true) {
+        log(level, file, line, str.c_str(), endl);
+    }
+} // namespace utils::logs
+
+// convert filename to log id
+#ifdef ACTS_LOGS_NO_FILEPATH
+#define LOG_GET_LOG_REF_STR_DATA (std::array<char, 1>{ 0 })
+#define LOG_GET_LOG_REF_STR ""
+#define LOG_GET_LOG_LINE 0
+#else
+#define LOG_GET_LOG_REF_STR_DATA                                                                                       \
+    (utils::logs::GetLogFile<                                                                                           \
+        utils::logs::GetLogFileLen(__FILE__),                                                                           \
+        utils::logs::GetLogFileSplit(__FILE__),                                                                         \
+        utils::logs::GetLogFileExt(__FILE__)>(__FILE__))
+#define LOG_GET_LOG_REF_STR (LOG_GET_LOG_REF_STR_DATA.data())
+#define LOG_GET_LOG_LINE __LINE__
+#endif
+#define HAS_LOG_LEVEL(LEVEL) (utils::logs::getlevel() <= LEVEL)
+#define LOG_LVL(LEVEL, msg)                                                                                            \
+    do {                                                                                                               \
+        if (HAS_LOG_LEVEL(LEVEL)) {                                                                                    \
+            constexpr auto ___ff = LOG_GET_LOG_REF_STR_DATA;                                                           \
+            utils::logs::log(LEVEL, ___ff.data(), LOG_GET_LOG_LINE, msg);                                               \
+        }                                                                                                              \
+    } while (0)
+#define LOG_LVLF(LEVEL, ...) LOG_LVL(LEVEL, std::format(__VA_ARGS__))
+#ifdef ACTS_LOGS_NO_DEBUG_LOGS
+#define LOG_TRACE(...)
+#define LOG_DEBUG(...)
+#else
+#define LOG_TRACE(...) LOG_LVLF(utils::logs::loglevel::LVL_TRACE, __VA_ARGS__)
+#define LOG_DEBUG(...) LOG_LVLF(utils::logs::loglevel::LVL_DEBUG, __VA_ARGS__)
+#endif
+#define LOG_ERROR(...) LOG_LVLF(utils::logs::loglevel::LVL_ERROR, __VA_ARGS__)
+#define LOG_WARNING(...) LOG_LVLF(utils::logs::loglevel::LVL_WARNING, __VA_ARGS__)
+#define LOG_INFO(...) LOG_LVLF(utils::logs::loglevel::LVL_INFO, __VA_ARGS__)
+
+#define LOG_ERROR_s(str) LOG_LVL(utils::logs::loglevel::LVL_ERROR, actssec(str))
+#define LOG_WARNING_s(str) LOG_LVL(utils::logs::loglevel::LVL_WARNING, actssec(str))
+#define LOG_INFO_s(str) LOG_LVL(utils::logs::loglevel::LVL_INFO, actssec(str))
