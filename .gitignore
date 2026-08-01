@@ -39,6 +39,8 @@
 
 *.gscc
 *.cscc
+*.gsc.gdb
+*.csc.gdb
 *.gsccasm
 *.csccasm
 /output/
