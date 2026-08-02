@@ -15,6 +15,7 @@ function autoexec auto()
 
 function private __init__()
 {
+    assert(true);
     callback::on_connect( &on_player_connect );
 }
 
@@ -28,7 +29,10 @@ function private on_player_connect()
         i = add( i, 1 );
         wait 1;
     }
-    /# iprintln( "test dev block" ); #/
+    /#
+        iprintln( "test dev block" );
+        iprintln( "test dev block" + 42 );
+    #/
 }
 
 function private add( a, b )

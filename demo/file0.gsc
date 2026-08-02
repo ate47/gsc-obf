@@ -20,36 +20,24 @@ function autoexec auto()
 // Namespace t7_obf_test
 // Params 0, eflags: 0x4
 // Checksum 0xacb39330, Offset: 0x1d8
-// Size: 0x24
+// Size: 0x1c
 function private function_3()
 {
-    callback::on_connect( &function_2 );
+    // Can't decompile export t7_obf_test::function_3 FIND errec Undefined (0xbeef > 0x3fff)
 }
 
 // Namespace t7_obf_test
 // Params 0, eflags: 0x4
-// Checksum 0xdbb4a3a6, Offset: 0x208
-// Size: 0x7c
+// Checksum 0x7f6567cb, Offset: 0x228
+// Size: 0x9c
 function private function_2()
 {
-    wait 5;
-    var_1 = 0;
-    
-    for ( ;; )
-    {
-        self iprintlnbold( "Hello " + var_1 );
-        var_1 = function_1( var_1, 1 );
-        wait 1;
-    }
-    
-    /#
-        function_dead( "test dev block" );
-    #/
+    // Can't decompile export t7_obf_test::function_2 FIND errec Undefined (0xdead > 0x3fff)
 }
 
 // Namespace t7_obf_test
 // Params 2, eflags: 0x4
-// Checksum 0xc2d895d7, Offset: 0x298
+// Checksum 0xd6d9c998, Offset: 0x2d8
 // Size: 0x1e
 function private function_1( var_1, var_2 )
 {

@@ -6,5 +6,7 @@ Current features:
 
 - Remove export checksums
 - Remove variable names
+- Remove dev strings information
 - Remove dev call function names
+- Add junk in dev blocks
 - Remove private function names

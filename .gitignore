@@ -44,3 +44,4 @@
 *.gsccasm
 *.csccasm
 /output/
+/data/

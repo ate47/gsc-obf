@@ -55,11 +55,21 @@ namespace {
         return utils::va("hash_%x", hash); // todo: use db
     }
 
-    int HandleFile(std::filesystem::path in, std::filesystem::path out) {
+    int HandleFFFile(std::filesystem::path in, std::filesystem::path out) {
         std::vector<byte> buffer;
 
-        LOG_INFO("Reading {} to {}...", in.string(), out.string());
+        if (!utils::ReadFile(in, buffer)) {
+            LOG_ERROR("Can't read {}", in.string());
+            return -1;
+        }
 
+        LOG_ERROR("Not yet implemented");
+
+        return -1;
+    }
+
+    int HandleGSCFile(std::filesystem::path in, std::filesystem::path out) {
+        std::vector<byte> buffer;
         void* script;
         size_t scriptLen;
 
@@ -168,7 +178,26 @@ namespace {
                 }
             }
         }
-        LOG_TRACE("Patched {} exports", header.export_count);
+
+        auto KillDevByteCodeOp = [&header, scriptEnd](uint32_t& floc, size_t len, size_t delta) {
+            if (opt.noDebugKill) {
+                return; // disabled
+            }
+            byte* bc{ utils::Aligned(&header.magic[floc + delta], len) };
+
+            if (floc < 2 + delta || utils::Aligned<uint16_t>(bc + len) + 2 > scriptEnd) {
+                LOG_ERROR("Invalid dev op size");
+                return;
+            }
+
+            // we leave a small gift in the dev block
+
+            // due to the alignment, we maybe kill (part of) the opcode
+            *(uint16_t*)&header.magic[floc - 2] = 0xdead;
+            // kill the opcode after the string (from what I know, a dev block can't end with a get string or a function
+            // call without dectop)
+            *(uint16_t*)utils::Aligned<uint16_t>(&bc[len]) = 0xbeef;
+        };
 
         if (header.import_offset + sizeof(data::gsc::T7GSCImport) > scriptLen) {
             LOG_ERROR("Invalid imports size");
@@ -179,7 +208,8 @@ namespace {
 
         for (size_t i = 0; i < header.import_count; i++) {
             data::gsc::T7GSCImport& imp{ *imports };
-            imports = (data::gsc::T7GSCImport*)((uint32_t*)&imports[1] + imports->num_address);
+            uint32_t* offsets{ (uint32_t*)&imports[1] };
+            imports = (data::gsc::T7GSCImport*)&offsets[imports->num_address];
             if (imports > scriptEnd) {
                 LOG_ERROR("Found invalid imports @{}", i);
                 return -1;
@@ -196,6 +226,11 @@ namespace {
                     // kill dev block call information
                     imp.name = 0xdead;
                     imp.import_namespace = 0xdead;
+
+                    for (size_t j = 0; j < imp.num_address; j++) {
+                        size_t delta = (imp.flags & data::gsc::T7GIF_FUNC_METHOD) != 0 ? 1 : 0;
+                        KillDevByteCodeOp(offsets[j], 8, delta);
+                    }
                 }
             }
         }
@@ -224,6 +259,37 @@ namespace {
             }
         }
 
+        if (!opt.noDebugKill) {
+
+            if (header.devblock_string_offset + sizeof(data::gsc::T7GSCString) > scriptLen) {
+                LOG_ERROR("Invalid strings size");
+                return -1;
+            }
+
+            data::gsc::T7GSCString* strings{ (data::gsc::T7GSCString*)&header.magic[header.devblock_string_offset] };
+
+            for (size_t i = 0; i < header.devblock_string_count; i++) {
+                data::gsc::T7GSCString& str{ *strings };
+                uint32_t* offsets{ (uint32_t*)&strings[1] };
+                strings = (data::gsc::T7GSCString*)&offsets[strings->num_address];
+                if (strings > scriptEnd) {
+                    LOG_ERROR("Found invalid strings @{}", i);
+                    return -1;
+                }
+
+                for (size_t j = 0; j < str.num_address; j++) {
+                    KillDevByteCodeOp(offsets[j], 4, 0);
+                }
+
+                // kill dev block string information
+                std::memset(offsets, 0, sizeof(*offsets) * str.num_address);
+                std::memset(&str, 0, sizeof(str));
+            }
+
+            header.devblock_string_offset = 0;
+            header.devblock_string_count = 0;
+        }
+
         // write back the file
 
         if (!utils::WriteFile(out, script, scriptLen)) {
@@ -233,6 +299,23 @@ namespace {
         LOG_DEBUG("Write back {}", out.string());
 
         return 0;
+    }
+
+    int HandleFile(std::filesystem::path in, std::filesystem::path out) {
+
+        LOG_INFO("Reading {} to {}...", in.string(), out.string());
+        std::filesystem::create_directories(out.parent_path());
+
+        if (in.extension() == ".ff") {
+            // convert fastfile
+            return HandleFFFile(in, out);
+        } else if (in.extension() == ".gscc" || in.extension() == ".cscc") {
+            // convert gsc
+            return HandleGSCFile(in, out);
+        } else {
+            LOG_ERROR("Invalid extension for file {}, only fastfile and compiled gsc files are accepted", in.string());
+            return -1;
+        }
     }
 
 } // namespace
@@ -292,7 +375,6 @@ int main(int argc, const char* argv[]) {
     }
 
     std::filesystem::path outDir{ opt.output };
-    std::filesystem::create_directories(outDir);
     int r{};
 
     for (size_t i = 0; i < opts.ParamsCount(); i++) {
@@ -302,7 +384,7 @@ int main(int argc, const char* argv[]) {
             paths.emplace_back(parent.filename());
             parent = std::filesystem::absolute(parent).parent_path();
         } else {
-            utils::GetFileRecurseExt(parent, paths, ".gscc\0.cscc\0", true);
+            utils::GetFileRecurseExt(parent, paths, ".gscc\0.cscc\0.ff\0", true);
 
             if (paths.empty()) {
                 LOG_WARNING("Can't find compiled gsc files (.gscc/.cscc) in {}", opts[i]);
