@@ -11,6 +11,7 @@ namespace {
         bool printHelp{};
         bool printData{};
         bool noDebugKill{};
+        bool recomputeCRC{};
         const char* logLevel{};
         const char* output{ "output" };
     } opt;
@@ -49,6 +50,15 @@ namespace {
             crc.update(b[i]);
         }
         return crc.final();
+    }
+
+    size_t FindExportSizeByCrc(byte* bytecode, void* end, uint32_t crc) {
+        for (size_t len = 1; bytecode + len <= end; len++) {
+            if (ComputeCRC32(bytecode, len) == crc) {
+                return len;
+            }
+        }
+        return 0;
     }
 
     const char* ExtractTmp(uint32_t hash) {
@@ -125,28 +135,39 @@ namespace {
 
         data::gsc::T7GSCExport* exports{ (data::gsc::T7GSCExport*)&header.magic[header.export_offset] };
 
-        std::unordered_map<NameLocated, std::vector<data::gsc::T7GSCExport*>, NameLocatedHash, NameLocatedEquals>
-            exportsMap{};
+        struct GscExportData {
+            data::gsc::T7GSCExport* ref;
+            byte* bc{};
+            size_t len{};
+        };
+
+        std::unordered_map<NameLocated, std::vector<GscExportData>, NameLocatedHash, NameLocatedEquals> exportsMap{};
         std::unordered_map<NameLocated, std::vector<data::gsc::T7GSCImport*>, NameLocatedHash, NameLocatedEquals>
             importsMap{};
 
         for (size_t i = 0; i < header.export_count; i++) {
             data::gsc::T7GSCExport& exp{ exports[i] };
 
-            exportsMap[NameLocated{
-                           .name_space = exp.name_space,
-                           .name = exp.name,
-                       }]
-                .emplace_back(&exp);
-
             if (utils::AlignedC<uint16_t>(exp.address) + 4 > scriptLen) { // the minimum is createparam + end (4 bytes)
                 LOG_ERROR("Found invalid exports address @{}", i);
                 return -1;
             }
             byte* bc{ &header.magic[exp.address] };
+            size_t len{ FindExportSizeByCrc(bc, scriptEnd, exp.checksum) };
+            if (opt.recomputeCRC && !len) {
+                LOG_WARNING("Can't compute crc size for {}::{}", ExtractTmp(exp.name_space), ExtractTmp(exp.name));
+            }
 
-            // we can remove the checksum by computing only one byte, it kills cerberus
-            exp.checksum = ComputeCRC32(bc, 1);
+            exportsMap[NameLocated{
+                           .name_space = exp.name_space,
+                           .name = exp.name,
+                       }]
+                .emplace_back(GscExportData{ .ref = &exp, .bc = bc, .len = len });
+
+            if (!opt.recomputeCRC) {
+                // we can remove the checksum by computing only one byte, it kills cerberus
+                exp.checksum = ComputeCRC32(bc, 1);
+            }
 
             bc = utils::Aligned<uint16_t>(bc);
             uint16_t createParams{ *(uint16_t*)bc };
@@ -242,7 +263,7 @@ namespace {
                 continue;
             }
 
-            data::gsc::T7GSCExport& exp{ *exps[0] };
+            data::gsc::T7GSCExport& exp{ *exps[0].ref };
             if ((exp.flags & data::gsc::T7GEF_PRIVATE) != 0) {
                 // private export, we can remove its name
 
@@ -290,6 +311,19 @@ namespace {
             header.devblock_string_count = 0;
         }
 
+        // we recompute the export checksum, like that cerberus can accept the data
+        if (opt.recomputeCRC) {
+            for (auto& [nl, exps] : exportsMap) {
+                for (GscExportData& data : exps) {
+                    if (data.len == 0) {
+                        continue; // no right
+                    }
+
+                    data.ref->checksum = ComputeCRC32(data.bc, data.len);
+                }
+            }
+        }
+
         // write back the file
 
         if (!utils::WriteFile(out, script, scriptLen)) {
@@ -327,6 +361,7 @@ int main(int argc, const char* argv[]) {
     opts.addOption(&opt.printHelp, "show help", "--help", "", "-h");
     opts.addOption(&opt.printData, "print script header", "--header", "", "-H");
     opts.addOption(&opt.noDebugKill, "no debug data kill", "--no-debug", "", "-d");
+    opts.addOption(&opt.recomputeCRC, "recompute export crc", "--export-crc-recomp");
     opts.addOption(&opt.logLevel, "log level (e,w,i,d,p)", "--logs", " (level)", "-l");
     opts.addOption(&opt.logLevel, "log level (e,w,i,d,p)", "--logs", " (level)", "-l");
     opts.addOption(&opt.output, "output dir (default: output)", "--output", " (path)", "-o");
