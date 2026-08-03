@@ -1,0 +1,78 @@
+name: Build
+
+on:
+  push:
+    paths:
+      - "src/**"
+      - ".github/workflows/build.yml"
+      - "CMakeLists.txt"
+  pull_request:
+    paths:
+      - "src/**"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Release after build"
+        required: true
+        type: boolean
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3.5.3
+        with:
+          submodules: true
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+      - name: Get version
+        id: get_version
+        shell: pwsh
+        run: "\"version=$(scripts/getversion.ps1)\" | Out-File $env:GITHUB_OUTPUT"
+      - name: Version
+        run: "\"version: ${{ steps.get_version.outputs.version }}\""
+      - name: Install LLVM Clang
+        uses: KyleMayes/install-llvm-action@v2.0.9
+        with:
+          version: "22.1.7"
+          force-url: "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.7/LLVM-22.1.7-win64.exe"
+      - name: Create project
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64 "-DCLANG_FORMAT_PATH=$env:LLVM_PATH/bin/clang-format.exe"
+      - name: Validate project format
+        run: cmake --build build --target check-format
+      - name: Build project
+        shell: pwsh
+        run: msbuild build/AtianCodTools.slnx /p:Configuration=Release /p:Platform=x64
+      - name: Upload dev release
+        if: github.ref == 'refs/heads/main'
+        uses: ncipollo/release-action@v1
+        with:
+          commit: ${{ github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: "latest_build"
+          artifacts: "build/bin/Release/gsc-obf.exe,"
+          artifactErrorsFailBuild: true
+          makeLatest: false
+          removeArtifacts: true
+          replacesArtifacts: true
+          allowUpdates: true
+          name: "Dev build ${{ steps.get_version.outputs.version }}"
+          body: "Latest dev build, [get the latest release build here](https://github.com/${{ github.repository }}/releases/latest)."
+      - name: Upload release
+        if: inputs.release && github.ref == 'refs/heads/main'
+        uses: ncipollo/release-action@v1
+        with:
+          commit: ${{ github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "build/bin/Release/gsc-obf.exe"
+          artifactErrorsFailBuild: true
+          makeLatest: true
+          tag: "${{ steps.get_version.outputs.version }}"
+          name: "${{ steps.get_version.outputs.version }}"
+          bodyFile: release/RELEASE.MD
+
+
