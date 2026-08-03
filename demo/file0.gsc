@@ -10,37 +10,37 @@
 
 // Namespace t7_obf_test
 // Params 0, eflags: 0x2
-// Checksum 0xacb39330, Offset: 0x198
-// Size: 0x34
+// Checksum 0xacb39330, Offset: 0x1e8
+// Size: 0xa
 function autoexec auto()
 {
-    system::register( "t7_obf_test", &function_3, undefined, undefined );
+    goto LOC_ffffffffffffffb0;
 }
 
 // Namespace t7_obf_test
 // Params 0, eflags: 0x4
-// Checksum 0xacb39330, Offset: 0x1d8
-// Size: 0x1c
+// Checksum 0xacb39330, Offset: 0x1ec
+// Size: 0x6
 function private function_3()
 {
-    // Can't decompile export t7_obf_test::function_3 FIND errec Undefined (0xbeef > 0x3fff)
+    goto LOC_ffffffffffffffec;
 }
 
 // Namespace t7_obf_test
 // Params 0, eflags: 0x4
-// Checksum 0x7f6567cb, Offset: 0x228
-// Size: 0x9c
+// Checksum 0x7f6567cb, Offset: 0x290
+// Size: 0x6
 function private function_2()
 {
-    // Can't decompile export t7_obf_test::function_2 FIND errec Undefined (0xdead > 0x3fff)
+    goto LOC_ffffffffffffff98;
 }
 
 // Namespace t7_obf_test
 // Params 2, eflags: 0x4
-// Checksum 0xd6d9c998, Offset: 0x2d8
-// Size: 0x1e
+// Checksum 0xd6d9c998, Offset: 0x29c
+// Size: 0x5a
 function private function_1( var_1, var_2 )
 {
-    return var_1 + var_2;
+    goto LOC_0000003c;
 }
 

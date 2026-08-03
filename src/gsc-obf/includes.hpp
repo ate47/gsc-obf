@@ -16,6 +16,7 @@
 #include <random>
 #include <cstdint>
 #include <cstdarg>
+#include <span>
 
 typedef uint8_t byte;
 

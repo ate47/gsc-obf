@@ -10,3 +10,4 @@ Current features:
 - Remove dev call function names
 - Add junk in dev blocks
 - Remove private function names
+- Use trampolines to remove the preamble
