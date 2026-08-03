@@ -54,7 +54,7 @@ jobs:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: "latest_build"
-          artifacts: "build/bin/Release/gsc-obf.exe,"
+          artifacts: "build/bin/Release/gsc-obf.exe"
           artifactErrorsFailBuild: true
           makeLatest: false
           removeArtifacts: true
