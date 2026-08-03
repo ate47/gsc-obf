@@ -46,7 +46,7 @@ jobs:
         run: cmake --build build --target check-format
       - name: Build project
         shell: pwsh
-        run: msbuild build/GSCObf.slnx.slnx /p:Configuration=Release /p:Platform=x64
+        run: msbuild build/GSCObf.slnx /p:Configuration=Release /p:Platform=x64
       - name: Upload dev release
         if: github.ref == 'refs/heads/main'
         uses: ncipollo/release-action@v1
