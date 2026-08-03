@@ -227,7 +227,7 @@ namespace {
 
                 // the loc isn't used, so we can use it as a trampoline
                 for (size_t i = 0; i < len / TRAMPOLINE_SIZE; i++) {
-                    uint32_t rloc { (uint32_t)(&bc[TRAMPOLINE_SIZE * i] - &header.magic[0]) };
+                    uint32_t rloc{ (uint32_t)(&bc[TRAMPOLINE_SIZE * i] - &header.magic[0]) };
                     if (!junkLocation) {
                         junkLocation = rloc;
                     } else if (junkLocation != rloc) {
@@ -359,8 +359,8 @@ namespace {
                     int64_t origin{ (int64_t)*it };
                     int64_t delta{ dest - (origin + 4) }; // a jump delta starts from the end of the op data
                     if (delta > INT16_MAX || delta < INT16_MIN) {
-                        continue; // a jump delta is a signed 16 bits number, if we are bigger than that, we can't use this
-                                  // trampoline
+                        continue; // a jump delta is a signed 16 bits number, if we are bigger than that, we can't use
+                                  // this trampoline
                     }
 
                     loc = origin;
