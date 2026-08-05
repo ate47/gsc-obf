@@ -1,22 +1,9 @@
 #pragma once
 #include <data/gsc_data_t7.hpp>
 #include <utils/utils.hpp>
-#include <private_file.hpp>
+#include <options.hpp>
 
 namespace gscobf::obfuscator {
-    struct GscObfOptions {
-        gscobf::private_file::PrivateFile privateFileData{};
-        bool printHelp{};
-        bool printData{};
-        bool noRemoveLocals{};
-        bool noRemovePrivateExports{};
-        bool noDebugKill{};
-        bool noTrampoline{};
-        bool recomputeCRC{};
-        const char* logLevel{};
-        const char* privateFile{};
-        const char* output{ "output" };
-    };
 
     constexpr size_t TRAMPOLINE_SIZE = 4; // Jmp[2] Delta[2]
 
@@ -46,7 +33,7 @@ namespace gscobf::obfuscator {
     };
 
     class GscObfuscator {
-        GscObfOptions& opt;
+        gscobf::options::GscObfOptions& opt;
         byte* script;
         size_t scriptLen;
         void* scriptEnd;
@@ -57,7 +44,7 @@ namespace gscobf::obfuscator {
         std::vector<uint32_t> trampolineFreeLocations{};
         uint32_t junkLocation{}; // well to redirect all the offset
       public:
-        GscObfuscator(GscObfOptions& opt, byte* script, size_t scriptLen);
+        GscObfuscator(gscobf::options::GscObfOptions& opt, byte* script, size_t scriptLen);
 
         // init
         void ReadTables();

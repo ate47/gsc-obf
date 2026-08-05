@@ -55,7 +55,7 @@ namespace gscobf::obfuscator {
         }
     } // namespace
 
-    GscObfuscator::GscObfuscator(GscObfOptions& opt, byte* script, size_t scriptLen)
+    GscObfuscator::GscObfuscator(gscobf::options::GscObfOptions& opt, byte* script, size_t scriptLen)
         : opt(opt), script(script), scriptLen(scriptLen), header(*(data::gsc::T7GSCOBJ*)script),
           scriptEnd(&script[scriptLen]) {
 

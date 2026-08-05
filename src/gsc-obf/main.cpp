@@ -4,25 +4,57 @@
 #include <utils/utils.hpp>
 #include <private_file.hpp>
 #include <gsc_obfuscator.hpp>
+#include <fastfile.hpp>
 
 namespace {
 
-    void HandleGscObject(gscobf::obfuscator::GscObfOptions& opt, byte* file, size_t fileSize) {
+    void HandleGscObject(gscobf::options::GscObfOptions& opt, byte* file, size_t fileSize) {
         gscobf::obfuscator::GscObfuscator obf{ opt, file, fileSize };
         obf.RunTasks();
     }
 
-    void HandleFFFile(gscobf::obfuscator::GscObfOptions& opt, std::filesystem::path in, std::filesystem::path out) {
+    void HandleFFFile(
+        gscobf::options::GscObfOptions& opt, const std::filesystem::path& in, const std::filesystem::path& out
+    ) {
         std::vector<byte> buffer;
 
         if (!utils::ReadFile(in, buffer)) {
             throw std::runtime_error(std::format("Can't read {}", in.string()));
         }
+        gscobf::fastfile::FastfileInfo info{ gscobf::fastfile::DecompressFastfile(buffer.data(), buffer.size()) };
 
-        throw std::runtime_error("Not yet implemented");
+        // todo: apply patches on data
+
+        // reshape the fastfile code
+        if (opt.fastfileBuilder) {
+            sprintf_s(info.header.builder, "%s", opt.fastfileBuilder);
+        }
+
+        if (opt.fastfileCompression) {
+            if (!std::strcmp(opt.fastfileCompression, "uncompressed")) {
+                info.header.compression = data::fastfile::XFILE_UNCOMPRESSED;
+            } else if (!std::strcmp(opt.fastfileCompression, "lz4")) {
+                info.header.compression = data::fastfile::XFILE_LZ4;
+            } else if (!std::strcmp(opt.fastfileCompression, "zlib")) {
+                info.header.compression = data::fastfile::XFILE_ZLIB;
+            } else {
+                throw std::runtime_error(std::format("Invalid fastfile compression: {}", opt.fastfileCompression));
+            }
+        }
+
+        gscobf::fastfile::CompressFastfile(buffer, info);
+
+        // write back the file
+
+        if (!utils::WriteFile(out, buffer)) {
+            throw std::runtime_error(std::format("Can't write {}", out.string()));
+        }
+        LOG_DEBUG("Write back {}", out.string());
     }
 
-    void HandleGSCFile(gscobf::obfuscator::GscObfOptions& opt, std::filesystem::path in, std::filesystem::path out) {
+    void HandleGSCFile(
+        gscobf::options::GscObfOptions& opt, const std::filesystem::path& in, const std::filesystem::path& out
+    ) {
         std::vector<byte> buffer;
 
         if (!utils::ReadFile(in, buffer)) {
@@ -39,7 +71,8 @@ namespace {
         LOG_DEBUG("Write back {}", out.string());
     }
 
-    void HandleFile(gscobf::obfuscator::GscObfOptions& opt, std::filesystem::path in, std::filesystem::path out) {
+    void
+    HandleFile(gscobf::options::GscObfOptions& opt, const std::filesystem::path& in, const std::filesystem::path& out) {
 
         LOG_INFO("Reading {} to {}...", in.string(), out.string());
         std::filesystem::create_directories(out.parent_path());
@@ -67,7 +100,7 @@ int main(int argc, const char* argv[]) {
     utils::logs::setbasiclog(true);
     utils::cli_options::CliOptions opts{};
 
-    gscobf::obfuscator::GscObfOptions opt;
+    gscobf::options::GscObfOptions opt;
     opts.addOption(&opt.printHelp, "show help", "--help", "", "-h");
     opts.addOption(&opt.printData, "print script header", "--header", "", "-H");
     opts.addOption(&opt.noDebugKill, "no debug data kill", "--no-debug", "", "-d");
@@ -77,6 +110,13 @@ int main(int argc, const char* argv[]) {
     opts.addOption(&opt.recomputeCRC, "recompute export crc", "--export-crc-recomp", "", "-r");
     opts.addOption(&opt.logLevel, "log level (e,w,i,d,p)", "--logs", " (level)", "-l");
     opts.addOption(&opt.privateFile, "private file", "--private", " (file)", "-p");
+    opts.addOption(&opt.fastfileBuilder, "replace fastfile builder name", "--fastfile-builder", " (builder)");
+    opts.addOption(
+        &opt.fastfileCompression,
+        "replace fastfile compression",
+        "--fastfile-compression",
+        " (compression)"
+    );
     opts.addOption(&opt.output, "output dir (default: output)", "--output", " (path)", "-o");
 
     if (!opts.ComputeOptions(1, argc, argv) || opt.printHelp || opts.NotEnoughParam(1)) {
