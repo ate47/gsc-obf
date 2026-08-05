@@ -1,3 +1,6 @@
 [submodule "deps/crc_cpp"]
 	path = deps/crc_cpp
 	url = https://github.com/AshleyRoll/crc_cpp
+[submodule "deps/rapidcsv"]
+	path = deps/rapidcsv
+	url = https://github.com/d99kris/rapidcsv

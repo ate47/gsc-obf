@@ -21,4 +21,5 @@ append_common_defs(GSCObf)
 target_include_directories(GSCObf PRIVATE 
     "${CMAKE_SOURCE_DIR}/src/gsc-obf"
     "${CMAKE_SOURCE_DIR}/deps/crc_cpp/include/"
+    "${CMAKE_SOURCE_DIR}/deps/rapidcsv/src/"
 )
