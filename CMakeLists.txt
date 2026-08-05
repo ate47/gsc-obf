@@ -11,6 +11,9 @@ configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/version.hpp.in"
     "${CMAKE_SOURCE_DIR}/src/gsc-obf/version.hpp"
 )
+set(EXCLUDED_FORMAT_FILE
+    "${CMAKE_SOURCE_DIR}/src/gsc-obf/version.hpp"
+)
 
 
 macro(append_common_defs target)
@@ -44,6 +47,10 @@ macro(append_common_defs target)
         target_link_options(${target} PRIVATE /DEBUG)
     endif()
 
+endmacro()
+
+macro(add_format_excluded path)
+    list(APPEND EXCLUDED_FORMAT_FILE "${path}")
 endmacro()
 
 include("${CMAKE_SOURCE_DIR}/cmake/GSCObf.cmake")

@@ -115,7 +115,7 @@ int main(int argc, const char* argv[]) {
     opts.addOption(&opt.fastfileBuilder, "replace fastfile builder name", "--fastfile-builder", " (builder)");
     opts.addOption(
         &opt.fastfileCompression,
-        "replace fastfile compression",
+        "replace fastfile compression (uncompressed, lz4 or zlib)",
         "--fastfile-compression",
         " (compression)"
     );

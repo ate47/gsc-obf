@@ -11,4 +11,4 @@ namespace gscobf::version {
     // Disable updater
     constexpr unsigned int VERSION_ID = DEV_VERSION_ID;
 
-} // namespace gscobf::version
+}

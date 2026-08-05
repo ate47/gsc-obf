@@ -20,7 +20,6 @@ list(REMOVE_ITEM ALL_CXX_SOURCE_FILES ${EXCLUDED_FORMAT_FILE})
 file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/cppfiles.txt"
     CONTENT "$<JOIN:${ALL_CXX_SOURCE_FILES},\n>")
 
-
 add_custom_target(format
     COMMAND "${CLANG_FORMAT}" -i @${CMAKE_BINARY_DIR}/cppfiles.txt
 )
