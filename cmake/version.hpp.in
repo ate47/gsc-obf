@@ -1,0 +1,14 @@
+#pragma once
+namespace gscobf::version {
+    // Do not write in this file, it is updated by cmake
+
+    constexpr unsigned int DEV_VERSION_ID = 0xFFFFFFFF;
+    constexpr unsigned int BUILD_VERSION_ID = 0x${VERSION_ID};
+
+    constexpr const char* VERSION = "${VERSION}";
+    constexpr const wchar_t* VERSIONW = L"${VERSION}";
+
+    // Disable updater
+    constexpr unsigned int VERSION_ID = DEV_VERSION_ID;
+
+}

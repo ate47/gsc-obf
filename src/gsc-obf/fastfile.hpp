@@ -10,4 +10,4 @@ namespace gscobf::fastfile {
 
     FastfileInfo DecompressFastfile(void* file, size_t fileSize);
     void CompressFastfile(std::vector<byte>& out, FastfileInfo& info);
-}
+} // namespace gscobf::fastfile

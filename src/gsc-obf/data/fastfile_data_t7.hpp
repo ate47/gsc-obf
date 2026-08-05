@@ -55,4 +55,4 @@ namespace data::fastfile {
     };
     static_assert(sizeof(DBStreamHeader) == 0x10);
 
-} // namespace data::gsc
+} // namespace data::fastfile

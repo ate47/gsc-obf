@@ -2,6 +2,17 @@ cmake_minimum_required(VERSION 3.20)
 project(GSCObf LANGUAGES CXX C)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Read version information from the version file
+file(STRINGS "${CMAKE_SOURCE_DIR}/release/version" _VER_LINES)
+list(GET _VER_LINES 0 VERSION)
+list(GET _VER_LINES 1 VERSION_ID)
+
+configure_file(
+    "${CMAKE_SOURCE_DIR}/cmake/version.hpp.in"
+    "${CMAKE_SOURCE_DIR}/src/gsc-obf/version.hpp"
+)
+
+
 macro(append_common_defs target)
     set(target_type "${ARGV1}")
 

@@ -48,7 +48,7 @@ namespace gscobf::private_file {
                     // we can't use the gsc file to hide that because it is aligned
                     size_t start{ str.size() - 4 };
                     str.resize(val.size());
-                    char* p{str.data()};
+                    char* p{ str.data() };
                     // copy extension
                     std::memmove(&p[val.size() - 4], &p[start], 4);
 

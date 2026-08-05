@@ -5,6 +5,7 @@
 #include <private_file.hpp>
 #include <gsc_obfuscator.hpp>
 #include <fastfile.hpp>
+#include <version.hpp>
 
 namespace {
 
@@ -119,11 +120,7 @@ int main(int argc, const char* argv[]) {
     );
     opts.addOption(&opt.output, "output dir (default: output)", "--output", " (path)", "-o");
 
-    if (!opts.ComputeOptions(1, argc, argv) || opt.printHelp || opts.NotEnoughParam(1)) {
-        LOG_INFO("usage: {} (file)", argv[0]);
-        opts.PrintOptions();
-        return opt.printHelp ? 0 : -1;
-    }
+    bool badUsage{ !opts.ComputeOptions(1, argc, argv) || opt.printHelp || opts.NotEnoughParam(1) };
 
     if (opt.logLevel) {
         utils::logs::setbasiclog(false);
@@ -160,6 +157,14 @@ int main(int argc, const char* argv[]) {
             LOG_ERROR("Invalid log level: {}", opt.logLevel);
             return -1;
         }
+    }
+
+    LOG_INFO("GSC Obfuscate {}", gscobf::version::VERSION);
+
+    if (badUsage) {
+        LOG_INFO("usage: {} (file)", argv[0]);
+        opts.PrintOptions();
+        return opt.printHelp ? 0 : -1;
     }
 
     if (opt.privateFile) {

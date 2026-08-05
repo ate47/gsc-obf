@@ -32,7 +32,7 @@ namespace gscobf::fastfile {
 
         while (data < dataEnd) {
             // TODO: read blocks
-            info.maxBlockSize = 0;//
+            info.maxBlockSize = 0; //
             info.out = {};
         }
 
@@ -42,7 +42,6 @@ namespace gscobf::fastfile {
         out.clear();
         // write header
         utils::WriteValue(out, &info.header, sizeof(info.header));
-
 
         // TODO: write blocks
     }
