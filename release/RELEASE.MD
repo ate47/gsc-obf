@@ -1,1 +1,3 @@
-- initial version
+- add fastfile support
+- change fastfile compression type
+- change fastfile name
