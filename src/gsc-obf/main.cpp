@@ -2,6 +2,7 @@
 #include <data/gsc_data_t7.hpp>
 #include <utils/cli_options.hpp>
 #include <utils/utils.hpp>
+#include <utils/data_utils.hpp>
 #include <private_file.hpp>
 #include <gsc_obfuscator.hpp>
 #include <gsc_finder.hpp>
@@ -127,6 +128,7 @@ int main(int argc, const char* argv[]) {
     gscobf::options::GscObfOptions opt{};
     opts.addOption(&opt.printHelp, "show help", "--help", "", "-h");
     opts.addOption(&opt.printData, "print script header", "--header", "", "-H");
+    opts.addOption(&opt.seed, "seed used for random", "--seed", " (seed)", "-s");
     opts.addOption(&opt.noDebugKill, "no debug data kill", "--no-debug", "", "-d");
     opts.addOption(&opt.noRemoveLocals, "no remove locals", "--no-locals");
     opts.addOption(&opt.noRemovePrivateExports, "no remove private exports", "--no-private");
@@ -188,6 +190,10 @@ int main(int argc, const char* argv[]) {
         LOG_INFO("usage: {} (file)", argv[0]);
         opts.PrintOptions();
         return opt.printHelp ? 0 : -1;
+    }
+
+    if (opt.seed) {
+        utils::data::RandomMachine().seed(opt.seed);
     }
 
     if (opt.privateFile) {

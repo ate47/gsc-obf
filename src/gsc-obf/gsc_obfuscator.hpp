@@ -54,6 +54,7 @@ namespace gscobf::obfuscator {
         void KillPrivateExports();
         void ApplyPrivateStrings();
         void ApplyPrivateScripts();
+        void ApplyPrivateHashes();
         void CreateTrampolines();
         void ComputeChecksums();
         void RunTasks();

@@ -11,6 +11,7 @@ namespace gscobf::options {
         bool noDebugKill{};
         bool noTrampoline{};
         bool recomputeCRC{};
+        size_t seed{};
         const char* logLevel{};
         const char* privateFile{};
         const char* output{ "output" };

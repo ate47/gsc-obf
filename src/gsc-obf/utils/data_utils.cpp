@@ -28,7 +28,7 @@ namespace utils::data {
 
         return ss.str();
     }
-    static std::mt19937& RandomMachine() {
+    std::mt19937& RandomMachine() {
         static struct {
             std::random_device rd;
             std::mt19937 gen{ rd() };

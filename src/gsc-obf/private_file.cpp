@@ -15,7 +15,7 @@ namespace gscobf::private_file {
             throw std::runtime_error("PrivateDigit invalid buff");
         }
 
-        val = val ^ uidVal;
+        val = EncodeNumber(val);
         while (val) {
             if (buffSize == 1) {
                 break;
@@ -87,6 +87,13 @@ namespace gscobf::private_file {
 
                 LOG_TRACE("add str '{}'->'{}'", val, str);
                 this->strings[val] = std::move(str);
+                continue;
+            }
+
+            if (type == "hash") {
+                uint32_t hash{ EncodeNumber<uint32_t>(i) };
+                LOG_TRACE("add hash '{}'->'hash_{:x}'", val, hash);
+                this->hashes[val] = hash;
                 continue;
             }
 

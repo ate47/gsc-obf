@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <gsc_obfuscator.hpp>
 #include <utils/data_utils.hpp>
+#include <utils/bytebuffer.hpp>
 // crc_cpp stuff
 #undef small
 #include <crc_cpp.h>
@@ -299,6 +300,7 @@ namespace gscobf::obfuscator {
             }
         }
     }
+
     void GscObfuscator::ApplyPrivateScripts() {
         char* name{ (char*)&header.magic[header.name_offset] };
         ValidateStringInScript(name, "script name");
@@ -322,6 +324,20 @@ namespace gscobf::obfuscator {
             char* inc{ (char*)&header.magic[includes[i]] };
             ValidateStringInScript(inc, "include value");
             opt.privateFileData.RenamedScriptExt(inc, client);
+        }
+    }
+
+    void GscObfuscator::ApplyPrivateHashes() {
+        utils::bytebuffer::ByteBuffer bb{ script, scriptLen };
+        for (auto& [str, val] : opt.privateFileData.GetHashes()) {
+            // Why would the user has hashed values here, it's its strings
+            uint32_t hash{ hash::HashT7(str.data()) };
+
+            size_t off;
+
+            while ((off = bb.Find((byte*)&hash, sizeof(hash))) != std::string::npos) {
+                *(uint32_t*)&script[off] = val; // replace hash by its value
+            }
         }
     }
 
@@ -406,6 +422,7 @@ namespace gscobf::obfuscator {
         }
         ApplyPrivateStrings();
         ApplyPrivateScripts();
+        ApplyPrivateHashes();
         if (!opt.noDebugKill) {
             KillDevImports();
             KillDevStrings();
