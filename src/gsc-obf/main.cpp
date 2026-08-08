@@ -120,11 +120,10 @@ namespace {
 } // namespace
 
 int main(int argc, const char* argv[]) {
-    srand(time(NULL));
     utils::logs::setbasiclog(true);
     utils::cli_options::CliOptions opts{};
 
-    gscobf::options::GscObfOptions opt;
+    gscobf::options::GscObfOptions opt{};
     opts.addOption(&opt.printHelp, "show help", "--help", "", "-h");
     opts.addOption(&opt.printData, "print script header", "--header", "", "-H");
     opts.addOption(&opt.noDebugKill, "no debug data kill", "--no-debug", "", "-d");
@@ -191,7 +190,12 @@ int main(int argc, const char* argv[]) {
     }
 
     if (opt.privateFile) {
-        if (!opt.privateFileData.ReadFile(opt.privateFile)) {
+        try {
+            if (!opt.privateFileData.ReadFile(opt.privateFile)) {
+                return -1;
+            }
+        } catch (std::runtime_error& err) {
+            LOG_ERROR("Can't load private file: {}", err.what());
             return -1;
         }
     }

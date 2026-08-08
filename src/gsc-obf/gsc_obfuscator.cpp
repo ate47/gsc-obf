@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <gsc_obfuscator.hpp>
+#include <utils/data_utils.hpp>
 // crc_cpp stuff
 #undef small
 #include <crc_cpp.h>
@@ -29,7 +30,7 @@ namespace gscobf::obfuscator {
             0x3e03, 0x3e5e, 0x3ea1, 0x3ee7
         };
 
-        uint16_t GetRandomOpCodes(std::span<uint16_t> opcodes) { return opcodes[rand() % opcodes.size()]; }
+        uint16_t GetRandomOpCodes(std::span<uint16_t> opcodes) { return opcodes[utils::data::Rand(opcodes.size())]; }
 
         uint32_t ComputeCRC32(void* data, size_t len) {
             byte* b{ (byte*)data };
@@ -139,6 +140,12 @@ namespace gscobf::obfuscator {
             throw std::runtime_error(std::format("Invalid {} ({} > {})", descr, ptr, scriptEnd));
         }
     };
+    void GscObfuscator::ValidateStringInScript(const char* ptr, const char* descr) {
+        ValidateInScript(ptr, descr);
+        while (*(ptr++)) {
+            ValidateInScript(ptr, descr);
+        }
+    }
 
     void GscObfuscator::KillDevByteCodeOp(uint32_t& floc, size_t len, size_t delta) {
         if (opt.noDebugKill) {
@@ -274,6 +281,25 @@ namespace gscobf::obfuscator {
             }
         }
     }
+    void GscObfuscator::ApplyPrivateStrings() {
+        if (header.string_count) {
+            data::gsc::T7GSCString* strings{ (data::gsc::T7GSCString*)&header.magic[header.string_offset] };
+            ValidateInScript(strings + 1, "strings table");
+
+            for (size_t i = 0; i < header.string_count; i++) {
+                data::gsc::T7GSCString& str{ *strings };
+                uint32_t* offsets{ (uint32_t*)&strings[1] };
+                strings = (data::gsc::T7GSCString*)&offsets[strings->num_address];
+
+                ValidateInScript(strings, "strings table");
+
+                char* s{ (char*)&header.magic[str.string] };
+                ValidateStringInScript(s, "string ref");
+                opt.privateFileData.RenamedString(s);
+            }
+        }
+    }
+
     void GscObfuscator::CreateTrampolines() {
         std::sort(trampolineFreeLocations.begin(), trampolineFreeLocations.end(), [](uint32_t a, uint32_t b) {
             return a < b;
@@ -353,6 +379,7 @@ namespace gscobf::obfuscator {
         if (!opt.noRemovePrivateExports) {
             KillPrivateExports();
         }
+        ApplyPrivateStrings();
         if (!opt.noDebugKill) {
             KillDevImports();
             KillDevStrings();

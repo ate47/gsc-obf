@@ -38,6 +38,7 @@ macro(append_common_defs target)
             CXX_STANDARD 20
             CXX_STANDARD_REQUIRED ON
         )
+        target_compile_options(${target} PRIVATE /Zi)
         target_link_options(${target} PRIVATE /DEBUG)
     elseif("${target_type}" STREQUAL "C")
         set_target_properties(${target} PROPERTIES 

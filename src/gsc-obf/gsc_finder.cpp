@@ -34,7 +34,7 @@ namespace gscobf::finder {
             off++;
             ScriptParseTree& spt{ *decReader.ReadPtr<ScriptParseTree>() };
 
-            const char* name{ decReader.ReadString() };
+            char* name{ decReader.ReadString() };
 
             std::string_view sw{ name };
             if (spt.len < 8 ||

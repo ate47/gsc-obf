@@ -52,6 +52,7 @@ namespace gscobf::obfuscator {
         void KillDevImports();
         void KillDevStrings();
         void KillPrivateExports();
+        void ApplyPrivateStrings();
         void CreateTrampolines();
         void ComputeChecksums();
         void RunTasks();
@@ -59,6 +60,7 @@ namespace gscobf::obfuscator {
         // utils
         void PrintHeader();
         void ValidateInScript(const void* ptr, const char* descr);
+        void ValidateStringInScript(const char* ptr, const char* descr);
         void KillDevByteCodeOp(uint32_t& floc, size_t len, size_t delta);
 
         // align a location relative to the header (used to avoid aligning the script in memory)

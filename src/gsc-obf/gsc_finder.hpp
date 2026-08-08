@@ -3,7 +3,7 @@
 
 namespace gscobf::finder {
     struct GscObject {
-        const char* name;
+        char* name;
         size_t fileSize;
         byte* obj;
     };

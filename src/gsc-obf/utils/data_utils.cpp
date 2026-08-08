@@ -2,6 +2,7 @@
 #include <utils/data_utils.hpp>
 
 namespace utils::data {
+
     std::string AsHex(const void* buff, size_t size) {
         std::stringstream ss{};
 
@@ -27,11 +28,25 @@ namespace utils::data {
 
         return ss.str();
     }
+    static std::mt19937& RandomMachine() {
+        static struct {
+            std::random_device rd;
+            std::mt19937 gen{ rd() };
+        } v{};
+        return v.gen;
+    }
+
+    size_t Rand(size_t max) {
+        if (!max) {
+            return 0;
+        }
+        std::uniform_int_distribution<size_t> distrib{ 0, max - 1 };
+        return distrib(RandomMachine());
+    }
 
     void FillRandomBuffer(void* _buff, size_t size) {
         byte* buff{ (byte*)_buff };
-        std::random_device rd;
-        std::mt19937 gen{ rd() };
+        std::mt19937& gen{ RandomMachine() };
         std::uniform_int_distribution distrib{ 0, 0xFF };
         for (size_t i = 0; i < size; i++) {
             buff[i] = (byte)distrib(gen);

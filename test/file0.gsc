@@ -21,11 +21,14 @@ function private __init__()
 
 function private on_player_connect()
 {
+    self endon( #"disconnect" );
+    self endon( #"death" );
+    my_name = "gsc obfuscator";
     wait 5;
     i = 0;
     while ( true )
     {
-        self iprintlnbold( "Hello " + i );
+        self iprintlnbold( "Hello " + i + ", my name is " + my_name );
         i = add( i, 1 );
         wait 1;
     }
