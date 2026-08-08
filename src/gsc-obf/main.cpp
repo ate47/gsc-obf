@@ -57,6 +57,10 @@ namespace {
                 info.header.compression = data::fastfile::XFILE_LZ4;
             } else if (!std::strcmp(opt.fastfileCompression, "zlib")) {
                 info.header.compression = data::fastfile::XFILE_ZLIB;
+            } else if (!std::strcmp(opt.fastfileCompression, "lz4_hc")) {
+                info.header.compression = data::fastfile::XFILE_LZ4_HC;
+            } else if (!std::strcmp(opt.fastfileCompression, "zlib_hc")) {
+                info.header.compression = data::fastfile::XFILE_ZLIB_HC;
             } else {
                 throw std::runtime_error(std::format("Invalid fastfile compression: {}", opt.fastfileCompression));
             }
@@ -133,7 +137,7 @@ int main(int argc, const char* argv[]) {
     opts.addOption(&opt.fastfileBuilder, "replace fastfile builder name", "--fastfile-builder", " (builder)");
     opts.addOption(
         &opt.fastfileCompression,
-        "replace fastfile compression (uncompressed, lz4 or zlib)",
+        "replace fastfile compression (uncompressed, lz4, lz4_hc, zlib or zlib_hc)",
         "--fastfile-compression",
         " (compression)"
     );
