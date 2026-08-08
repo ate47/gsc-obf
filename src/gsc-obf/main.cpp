@@ -42,6 +42,7 @@ namespace {
                 obj.name,
                 obj.fileSize
             );
+            opt.privateFileData.RenamedScript(obj.name);
             HandleGscObject(opt, obj.obj, obj.fileSize);
         }
 

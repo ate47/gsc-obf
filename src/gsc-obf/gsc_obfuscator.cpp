@@ -299,6 +299,31 @@ namespace gscobf::obfuscator {
             }
         }
     }
+    void GscObfuscator::ApplyPrivateScripts() {
+        char* name{ (char*)&header.magic[header.name_offset] };
+        ValidateStringInScript(name, "script name");
+        std::string_view sw{ name };
+
+        bool client;
+        if (sw.ends_with(".csc") || sw.ends_with(".csh")) {
+            client = true;
+        } else if (sw.ends_with(".gsc") || sw.ends_with(".gsh")) {
+            client = false;
+        } else {
+            LOG_WARNING("Invalid script name: {}", name);
+            return;
+        }
+
+        opt.privateFileData.RenamedScript(name);
+
+        uint32_t* includes{ (uint32_t*)&header.magic[header.include_offset] };
+        ValidateInScript(&includes[header.include_count], "includes");
+        for (size_t i = 0; i < header.include_count; i++) {
+            char* inc{ (char*)&header.magic[includes[i]] };
+            ValidateStringInScript(inc, "include value");
+            opt.privateFileData.RenamedScriptExt(inc, client);
+        }
+    }
 
     void GscObfuscator::CreateTrampolines() {
         std::sort(trampolineFreeLocations.begin(), trampolineFreeLocations.end(), [](uint32_t a, uint32_t b) {
@@ -380,6 +405,7 @@ namespace gscobf::obfuscator {
             KillPrivateExports();
         }
         ApplyPrivateStrings();
+        ApplyPrivateScripts();
         if (!opt.noDebugKill) {
             KillDevImports();
             KillDevStrings();

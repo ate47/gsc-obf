@@ -4,25 +4,30 @@
 #include <utils/data_utils.hpp>
 
 namespace gscobf::private_file {
-    void EncodeVal(size_t val, char* buff, size_t buffSize) {
-        constexpr const char PRIVATE_FILE_UID_DICT[] = "abcdefghijklmnopqrstuvwxyz0123456789_.";
-        constexpr size_t n = (sizeof(PRIVATE_FILE_UID_DICT) - 1);
 
+    constexpr const char PRIVATE_FILE_UID_DICT[] = "abcdefghijklmnopqrstuvwxyz0123456789_.";
+    constexpr size_t PRIVATE_FILE_UID_DICT_LEN = sizeof(PRIVATE_FILE_UID_DICT) - 1;
+
+    PrivateFile::PrivateFile() {}
+
+    void PrivateFile::EncodeVal(size_t val, char* buff, size_t buffSize) {
         if (!buffSize) {
             throw std::runtime_error("PrivateDigit invalid buff");
         }
+
+        val = val ^ uidVal;
         while (val) {
             if (buffSize == 1) {
                 break;
             }
-            *(buff++) = PRIVATE_FILE_UID_DICT[val % n];
-            val /= n;
+            *(buff++) = PRIVATE_FILE_UID_DICT[val % PRIVATE_FILE_UID_DICT_LEN];
+            val /= PRIVATE_FILE_UID_DICT_LEN;
             buffSize--;
         }
         *buff = 0;
     }
 
-    const char* EncodeValTmp(size_t val) {
+    const char* PrivateFile::EncodeValTmp(size_t val) {
         thread_local size_t idx{};
         thread_local char tmp[16][16]{};
         auto& v{ tmp[(idx + 1) % ACTS_ARRAYSIZE(tmp)] };
@@ -30,14 +35,39 @@ namespace gscobf::private_file {
         return v;
     }
 
-    PrivateFile::PrivateFile() {}
+    void PrivateFile::EncodeBuffer(char* k, size_t start, size_t end, size_t val) {
+        uint64_t rnd{ hash::Hash64A(EncodeValTmp(val)) };
+        for (size_t i = start; i < end;) {
+            uint64_t r{ rnd };
+
+            k[i] = PRIVATE_FILE_UID_DICT[r % PRIVATE_FILE_UID_DICT_LEN];
+            r /= PRIVATE_FILE_UID_DICT_LEN;
+            i++;
+
+            while (r && i < end) {
+                k[i] = PRIVATE_FILE_UID_DICT[r % PRIVATE_FILE_UID_DICT_LEN];
+                r /= PRIVATE_FILE_UID_DICT_LEN;
+                i++;
+            }
+            rnd = hash::Hash64A(EncodeValTmp(val), rnd);
+        }
+    }
+
+    static char* CleanPath(char* path) {
+        // replace '/' -> '\' in script
+        for (char* script = path; *script; script++) {
+            if (*script == '/') {
+                *script = '\\';
+            }
+        }
+        return path;
+    }
 
     bool PrivateFile::ReadFile(const char* file) {
         rapidcsv::Document doc{ file, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(',') };
 
-        size_t uidVal{ utils::data::Rand(UINT32_MAX) };
-        EncodeVal(uidVal, pfuid, sizeof(pfuid));
-        LOG_DEBUG("using private file UID '{}' (0x{:x})", pfuid, uidVal);
+        uidVal = utils::data::Rand(UINT32_MAX);
+        LOG_DEBUG("using private file UID 0x{:x}", uidVal);
 
         if (doc.GetColumnCount() != 2) {
             LOG_ERROR("Invalid private file: should a two column CSV!");
@@ -49,7 +79,7 @@ namespace gscobf::private_file {
             std::string val{ doc.GetCell<std::string>(1, i) };
 
             if (type == "string") {
-                std::string str{ std::format("{}{}", pfuid, EncodeValTmp(i)) };
+                std::string str{ EncodeValTmp(i) };
                 if (str.size() > val.size()) {
                     LOG_WARNING("String '{}' is too small", val);
                     continue;
@@ -65,7 +95,7 @@ namespace gscobf::private_file {
                     LOG_WARNING("Missing or invalid script extension for {}", val);
                     continue;
                 }
-                std::string str{ std::format("{}/{}{}", pfuid, EncodeValTmp(i), val.substr(val.size() - 4, 4)) };
+                std::string str{ std::format("{}{}", EncodeValTmp(i), val.substr(val.size() - 4, 4)) };
 
                 if (str.size() > val.size()) {
                     LOG_WARNING("Script '{}' is too small", val);
@@ -83,12 +113,11 @@ namespace gscobf::private_file {
                     str.resize(val.size());
                     char* p{ str.data() };
                     // copy extension
-                    std::memmove(&p[val.size() - 4], &p[start], 4);
-
-                    for (size_t i = start; i < str.size() - 4; i++) {
-                        p[i] = 'x';
-                    }
+                    std::memmove(&p[str.size() - 4], &p[start], 4);
+                    EncodeBuffer(p, 0, str.size() - 4, i);
                 }
+                CleanPath(val.data());
+                LOG_TRACE("add scr '{}'->'{}'", val, str);
                 this->scripts[val] = std::move(str);
                 continue;
             }
@@ -106,5 +135,28 @@ namespace gscobf::private_file {
 
         // replace the value
         std::memcpy(str, it->second.data(), it->second.size() + 1);
+    }
+    void PrivateFile::RenamedScript(char* str) {
+        auto it{ scripts.find(str) };
+        if (it == scripts.end()) {
+            return; // not known
+        }
+
+        // replace the value
+        std::memcpy(str, it->second.data(), it->second.size() + 1);
+    }
+
+    void PrivateFile::RenamedScriptExt(char* str, bool client) {
+        std::string k{ std::format("{}{}", str, client ? ".csc" : ".gsc") };
+        CleanPath(k.data());
+        auto it{ scripts.find(k) };
+        if (it == scripts.end()) {
+            return; // not known
+        }
+
+        // replace the value
+        size_t noExtSize{ it->second.size() - 4 };
+        std::memcpy(str, it->second.data(), noExtSize);
+        str[noExtSize] = 0;
     }
 } // namespace gscobf::private_file
