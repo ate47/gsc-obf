@@ -38,3 +38,4 @@ constexpr char (*ActsArraySizeCounter(T (&)[N]))[N];
 #endif
 
 #include <utils/logs.hpp>
+#include <utils/hash_mini.hpp>

@@ -4,3 +4,12 @@
 [submodule "deps/rapidcsv"]
 	path = deps/rapidcsv
 	url = https://github.com/d99kris/rapidcsv
+[submodule "deps/lz4"]
+	path = deps/lz4
+	url = https://github.com/lz4/lz4
+[submodule "deps/zlib"]
+	path = deps/zlib
+	url = https://github.com/madler/zlib
+[submodule "deps/xxHash"]
+	path = deps/xxHash
+	url = https://github.com/Cyan4973/xxHash

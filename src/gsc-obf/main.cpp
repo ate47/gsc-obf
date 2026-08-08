@@ -17,7 +17,6 @@ namespace {
     void HandleFFFile(
         gscobf::options::GscObfOptions& opt, const std::filesystem::path& in, const std::filesystem::path& out
     ) {
-        throw std::runtime_error("not yet implemented");
         std::vector<byte> buffer;
 
         if (!utils::ReadFile(in, buffer)) {

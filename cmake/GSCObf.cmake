@@ -22,4 +22,15 @@ target_include_directories(GSCObf PRIVATE
     "${CMAKE_SOURCE_DIR}/src/gsc-obf"
     "${CMAKE_SOURCE_DIR}/deps/crc_cpp/include/"
     "${CMAKE_SOURCE_DIR}/deps/rapidcsv/src/"
+    "${CMAKE_SOURCE_DIR}/deps/zlib/"
+    "${CMAKE_SOURCE_DIR}/deps/zlib/contrib/minizip"
+    "${CMAKE_SOURCE_DIR}/deps/xxHash/"
+    "${CMAKE_SOURCE_DIR}/deps/lz4/lib/"
+)
+
+target_link_libraries(GSCObf PRIVATE
+    zlib
+    minizip
+    lz4
+    xxhash
 )

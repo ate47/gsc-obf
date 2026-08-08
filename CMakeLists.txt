@@ -49,9 +49,29 @@ macro(append_common_defs target)
 
 endmacro()
 
+macro(load_dir_recurse id)
+    file(GLOB DEP_SCRIPTS "${CMAKE_SOURCE_DIR}/cmake/${id}/*.cmake")
+
+    foreach(script ${DEP_SCRIPTS})
+        if(ALL_PLATFORM_ACTS)
+            get_filename_component(script_name "${script}" NAME)
+
+            if(NOT script_name IN_LIST ALL_PLATFORM_SAFE_SCRIPTS)
+                message(STATUS "Skipping ${script} (not all platform)")
+                continue()
+            endif()
+        endif()
+
+        message(STATUS "Loading ${script}")
+        include(${script})
+    endforeach()
+endmacro()
+
 macro(add_format_excluded path)
     list(APPEND EXCLUDED_FORMAT_FILE "${path}")
 endmacro()
+
+load_dir_recurse(deps)
 
 include("${CMAKE_SOURCE_DIR}/cmake/GSCObf.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/format.cmake")

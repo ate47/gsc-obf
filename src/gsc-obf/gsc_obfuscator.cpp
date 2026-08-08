@@ -212,7 +212,8 @@ namespace gscobf::obfuscator {
                 uint32_t* offsets{ (uint32_t*)&imp[1] };
                 if ((imp->flags & data::gsc::T7GIF_DEV_CALL) != 0) {
                     // kill dev block call information
-                    imp->name = 0xa7ee953; // assert
+                    constexpr uint32_t assertT7Hash = hash::HashT7("assert");
+                    imp->name = assertT7Hash;
                     imp->param_count = 1;
 
                     size_t delta = (imp->flags & data::gsc::T7GIF_FUNC_METHOD) != 0 ? 1 : 0;

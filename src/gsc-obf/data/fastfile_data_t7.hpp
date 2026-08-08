@@ -14,6 +14,11 @@ namespace data::fastfile {
         XFILE_BDELTA_ZLIB = 0x6,
         XFILE_BDELTA_LZMA = 0x7,
         XFILE_COMPRESSION_COUNT = 0x8,
+        XFILE_OODLE_KRAKEN = 0x8,
+        XFILE_OODLE_MERMAID = 0x9,
+        XFILE_OODLE_SELKIE = 0xA,
+        XFILE_OODLE_LZNA = 0xB,
+        XFILE_COMPRESSION_COUNT_T8 = 0xC,
     };
 
     enum FastFilePlatform : byte {
