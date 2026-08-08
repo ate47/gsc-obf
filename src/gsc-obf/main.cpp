@@ -4,6 +4,7 @@
 #include <utils/utils.hpp>
 #include <private_file.hpp>
 #include <gsc_obfuscator.hpp>
+#include <gsc_finder.hpp>
 #include <fastfile.hpp>
 #include <version.hpp>
 
@@ -25,6 +26,24 @@ namespace {
         gscobf::fastfile::FastfileInfo info{ gscobf::fastfile::DecompressFastfile(buffer.data(), buffer.size()) };
 
         // todo: apply patches on data
+        std::vector<gscobf::finder::GscObject> objects{
+            gscobf::finder::FindGscInBuffer(info.out.data(), info.out.size())
+        };
+
+        LOG_DEBUG("found {} gsc objects", objects.size());
+
+        for (size_t i = 0; i < objects.size(); i++) {
+            gscobf::finder::GscObject& obj{ objects[i] };
+            LOG_INFO(
+                "{}/{} patching {}::{} (size=0x{:x})",
+                i + 1,
+                objects.size(),
+                info.header.fastfileName,
+                obj.name,
+                obj.fileSize
+            );
+            HandleGscObject(opt, obj.obj, obj.fileSize);
+        }
 
         // reshape the fastfile code
         if (opt.fastfileBuilder) {
@@ -50,7 +69,7 @@ namespace {
         if (!utils::WriteFile(out, buffer)) {
             throw std::runtime_error(std::format("Can't write {}", out.string()));
         }
-        LOG_DEBUG("Write back {}", out.string());
+        LOG_INFO("Fastfile {} recompressed into {}", info.header.fastfileName, out.string());
     }
 
     void HandleGSCFile(
@@ -176,6 +195,8 @@ int main(int argc, const char* argv[]) {
     std::filesystem::path outDir{ opt.output };
     int r{};
 
+    utils::Timestamp startMS{ utils::GetTimestamp() };
+
     for (size_t i = 0; i < opts.ParamsCount(); i++) {
         std::vector<std::filesystem::path> paths{};
         std::filesystem::path parent{ opts[i] };
@@ -201,6 +222,14 @@ int main(int argc, const char* argv[]) {
                 r = -1;
             }
         }
+    }
+    utils::Timestamp endMS{ utils::GetTimestamp() };
+    double delta{ (double)((endMS - startMS) / 100) / 10 };
+
+    if (r) {
+        LOG_ERROR("Error during obfuscation");
+    } else {
+        LOG_INFO("obfuscation in {}s", delta);
     }
 
     return r;

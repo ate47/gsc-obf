@@ -139,4 +139,4 @@ namespace utils::bytebuffer {
         }
     };
 
-} // namespace core::bytebuffer
+} // namespace utils::bytebuffer

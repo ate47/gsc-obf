@@ -136,7 +136,7 @@ namespace gscobf::obfuscator {
 
     void GscObfuscator::ValidateInScript(const void* ptr, const char* descr) {
         if (ptr > scriptEnd) {
-            throw std::runtime_error(std::format("Invalid {}", descr));
+            throw std::runtime_error(std::format("Invalid {} ({} > {})", descr, ptr, scriptEnd));
         }
     };
 
@@ -226,26 +226,27 @@ namespace gscobf::obfuscator {
     }
 
     void GscObfuscator::KillDevStrings() {
-        data::gsc::T7GSCString* strings{ (data::gsc::T7GSCString*)&header.magic[header.devblock_string_offset] };
-        ValidateInScript(strings + 1, "dev strings table");
+        if (header.devblock_string_count) {
+            data::gsc::T7GSCString* strings{ (data::gsc::T7GSCString*)&header.magic[header.devblock_string_offset] };
+            ValidateInScript(strings + 1, "dev strings table");
 
-        for (size_t i = 0; i < header.devblock_string_count; i++) {
-            data::gsc::T7GSCString& str{ *strings };
-            uint32_t* offsets{ (uint32_t*)&strings[1] };
-            strings = (data::gsc::T7GSCString*)&offsets[strings->num_address];
-            ValidateInScript(strings, "dev strings table");
+            for (size_t i = 0; i < header.devblock_string_count; i++) {
+                data::gsc::T7GSCString& str{ *strings };
+                uint32_t* offsets{ (uint32_t*)&strings[1] };
+                strings = (data::gsc::T7GSCString*)&offsets[strings->num_address];
+                ValidateInScript(strings, "dev strings table");
 
-            for (size_t j = 0; j < str.num_address; j++) {
-                KillDevByteCodeOp(offsets[j], 4, 0);
+                for (size_t j = 0; j < str.num_address; j++) {
+                    KillDevByteCodeOp(offsets[j], 4, 0);
+                }
+
+                // kill dev block string information
+                std::memset(offsets, 0, sizeof(*offsets) * str.num_address);
+                std::memset(&str, 0, sizeof(str));
             }
-
-            // kill dev block string information
-            std::memset(offsets, 0, sizeof(*offsets) * str.num_address);
-            std::memset(&str, 0, sizeof(str));
+            header.devblock_string_count = 0;
         }
-
         header.devblock_string_offset = 0;
-        header.devblock_string_count = 0;
     }
 
     void GscObfuscator::KillPrivateExports() {
