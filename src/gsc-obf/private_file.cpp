@@ -33,7 +33,7 @@ namespace gscobf::private_file {
     PrivateFile::PrivateFile() {}
 
     bool PrivateFile::ReadFile(const char* file) {
-        rapidcsv::Document doc{ file };
+        rapidcsv::Document doc{ file, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(',') };
 
         size_t uidVal{ utils::data::Rand(UINT32_MAX) };
         EncodeVal(uidVal, pfuid, sizeof(pfuid));
