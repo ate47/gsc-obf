@@ -9,7 +9,7 @@ Test project to obfuscate GSC files for Call of Duty: Black Ops III.
 
 ## Usage
 
-Use the executable on the gsc file you want to obfuscate.
+Use the executable on the gsc file or on the fastfile you want to obfuscate.
 
 ```pwsh
 gsc-obf.exe [files*]
@@ -28,6 +28,8 @@ Here are the current features supported by the obfuscator.
 - [Remove dev call function names](docs/features/remove_dev_calls_info.md)
 - [Add junk in dev blocks](docs/features/add_dev_junk.md)
 - [Use trampolines to remove the preamble](docs/features/trampolines.md)
+- [Rename fastfile builder](docs/features/ff_rename_builder.md)
+- [Change fastfile compression](docs/features/ff_change_compression.md)
 
 ## Information
 
